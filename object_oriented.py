@@ -7,13 +7,15 @@ from random import randint
 import os
 #^ trim white spaces from image->https://stackoverflow.com/questions/1185524/how-to-trim-whitespace-including-tabs
 def trim(im):
-    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
-    diff = ImageChops.difference(im, bg)
-    diff = ImageChops.add(diff, diff, 50.0, -1)
-    bbox = diff.getbbox()
-    if bbox:
-        return im.crop(bbox)
-
+    bg = Image.new(im.mode, im.size, im.getpixel((0,10)))
+    #diff = ImageChops.difference(im, bg)
+    #diff = ImageChops.add(diff, diff, 50.0, -1)
+    #bbox = diff.getbbox()
+    #if bbox:
+        #return im.crop(bbox)
+    im.crop((100,100,100,100))
+ 
+    return im
 #^ urldecode 
 def decode(s):
     return urllib.parse.unquote_plus(s)
@@ -63,23 +65,32 @@ class Map:
     }
     f_ally = ImageFont.truetype("arial.ttf",20)
     f_pkt = ImageFont.truetype("arial.ttf",13)
-    im = Image.open("mapa_background.png")
-    draw = ImageDraw.Draw(im)
-    pixels = im.load()
-    players = []
-    villages = []
-    allies = {}
-    top15_allies = []
-    top10_players = []
+    
     def __init__(self, world, nat):
         self.domain = 'https://'+nat+world+self.domains[nat]
         self.world = world
         self.nat = nat
+        self.im = Image.open("mapa_background.png")
+        self.draw = ImageDraw.Draw(self.im)
+        self.pixels = self.im.load()
+        self.players = []
+        self.villages = []
+        self.allies = {}
+        self.top15_allies = []
+        self.top10_players = []
         try:
             self.families = self.families_all[world]
         except KeyError:
             self.families = {}
-        
+    def __exit__(self, *err):
+        self.close()
+    def __enter__(self):
+        return self
+    def close(self):
+        del self.players[:]
+        del self.villages[:]
+        del self.top15_allies[:]
+        del self.top10_players[:]
     def save_map(self, name):
         try:
             self.im.save(os.getcwd()+'/'+self.nat+self.world+'/'+name+'.png','PNG') # and save ;)
@@ -160,14 +171,18 @@ class Map:
                 #self.pixels[x+1,y-2] = (R,G,B)
                 
     def generate_top10_players(self):
+        print("[+]Trwa generowanie top10_players...")
+        for player in self.top10_players:
+            print (player)
         i = 1;
         for player in self.top10_players:
             player_id = player[0]
             R = self.colors[i][0]
             G = self.colors[i][1]
             B = self.colors[i][2]
-            i += 1
+    
             self.generate_player(player_id, R, G, B,2)
+            i += 1
     
     def generate_top15_allies(self):
         ally_text_y = 70 # top margin 
@@ -183,8 +198,8 @@ class Map:
             i += 1
             ally_id = ally[0]
             ally_name = ally[2]
-            ally_rank = int(ally[7])
-            ally_pkt = int(ally[6])
+            #ally_rank = int(ally[7])
+            #ally_pkt = int(ally[6])
             
             try:
                 # if any ally relation
@@ -209,8 +224,8 @@ class Map:
                 ally_text = ally_name
             
             # put chars into map
-            self.draw.text((0,ally_text_y),str(ally_rank) + ". " + ally_text,(R,G,B),font=self.f_ally)    
-            self.draw.text((0,ally_text_y+30),str(ally_pkt)+"pkt.",(R,G,B),font=self.f_pkt)
+            #self.draw.text((0,ally_text_y),str(ally_rank) + ". " + ally_text,(R,G,B),font=self.f_ally)    
+            #self.draw.text((0,ally_text_y+30),str(ally_pkt)+"pkt.",(R,G,B),font=self.f_pkt)
             ally_text_y+=45 # transfer cursor into new line
             for player in self.players:
                 if player[2]!='0' and player[2] in ally_ids: # if it's player(or flag wasn't set) and player belong to family
